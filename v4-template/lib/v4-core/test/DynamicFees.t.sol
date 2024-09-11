@@ -62,7 +62,7 @@ contract TestDynamicFees is Test, Deployers, GasSnapshot {
             currency0,
             currency1,
             IHooks(address(dynamicFeesHooks)),
-            LPFeeLibrary.DYNAMIC_FEE_FLAG,
+           100000,
             SQRT_PRICE_1_1,
             ZERO_BYTES
         );

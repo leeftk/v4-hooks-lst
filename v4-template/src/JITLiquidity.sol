@@ -2,16 +2,18 @@
 pragma solidity ^0.8.24;
 
 import {BaseHook} from "v4-periphery/src/base/hooks/BaseHook.sol";
-
 import {Hooks} from "v4-core/src/libraries/Hooks.sol";
 import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
 import {PoolKey} from "v4-core/src/types/PoolKey.sol";
 import {PoolId, PoolIdLibrary} from "v4-core/src/types/PoolId.sol";
 import {BalanceDelta} from "v4-core/src/types/BalanceDelta.sol";
 import {BeforeSwapDelta, BeforeSwapDeltaLibrary} from "v4-core/src/types/BeforeSwapDelta.sol";
+import {IPositionManager} from "v4-periphery/src/interfaces/IPositionManager.sol";
+import {PositionConfig} from "v4-periphery/src/libraries/PositionConfig.sol";
+import {EasyPosm} from "./EasyPosm.sol";
 
-contract Counter is BaseHook {
-    using PoolIdLibrary for PoolKey;
+contract JITLiquidity is BaseHook {
+   using PoolIdLibrary for PoolKey;
 
     // NOTE: ---------------------------------------------------------
     // state variables should typically be unique to a pool
