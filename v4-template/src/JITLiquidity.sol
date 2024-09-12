@@ -25,6 +25,7 @@ import {LiquidityOperations} from "v4-periphery/test/shared/LiquidityOperations.
 
 
 contract JITLiquidity is BaseHook, LiquidityOperations {
+   
    using PoolIdLibrary for PoolKey;
    using EasyPosm for IPositionManager;
    IPositionManager public posm;
@@ -44,7 +45,7 @@ contract JITLiquidity is BaseHook, LiquidityOperations {
     int256 internal constant MAX_INT = type(int256).max;
     uint16 internal constant MINIMUM_LIQUIDITY = 1000;
     bytes constant ZERO_BYTES = new bytes(0);
-
+  
 
   
 
@@ -57,6 +58,7 @@ contract JITLiquidity is BaseHook, LiquidityOperations {
     constructor(IPoolManager _poolManager, IPositionManager _posm) BaseHook(_poolManager) {
         posm = _posm;
         manager = _poolManager;
+       
     
     }
 
@@ -91,11 +93,7 @@ contract JITLiquidity is BaseHook, LiquidityOperations {
         uint256 liquidity = 100e18;
         uint256 slippage = 100e18;
         uint256 deadline = block.timestamp + 1;
-        //@notes: encoding the calls properly is the next step
-        //essentially we have to encode the paramas for adding liqudidity properly. Once we do that we should be able 
-        //to provide liq before a swap
-        //  bytes memory calls =
-        //     abi.encode(0);
+
 
 
         
@@ -133,8 +131,10 @@ contract JITLiquidity is BaseHook, LiquidityOperations {
             ),
             ZERO_BYTES
         ); 
+        console.log("address currecny0",address(Currency.unwrap(key.currency0)));
         console.log("BALABABABBA", IERC20(Currency.unwrap(key.currency0)).balanceOf(address(this)));
         console.log("delta.amount0()", uint128(delta.amount0()));
+        console.log("address this", address(this));
         // Handle delta.amount0()
         if (delta.amount0() < 0) {
             // Negative Value => Money leaving contract's wallet

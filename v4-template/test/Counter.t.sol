@@ -59,18 +59,7 @@ contract CounterTest is Test, Fixtures, LiquidityOperations {
         // creates the pool manager, utility routers, and test tokens
         deployFreshManagerAndRouters();
         deployMintAndApprove2Currencies();
-        ////check balance of currency 0 and currency 1
-        console.log("currency0 balance", currency0.balanceOf(address(this)));
-        console.log("currency1 balance", currency1.balanceOf(address(this)));
-        //transfer currency0 to the hook
-        IERC20(Currency.unwrap(currency0)).transfer(address(hook), 1000000000000 ether);
-        IERC20(Currency.unwrap(currency1)).transfer(address(hook), 1000000000000 ether);
-        console.log("currency0 balance after traasdfasdfnsfer", currency1.balanceOf(address(hook)));
-        console.log("address of currency0", address(Currency.unwrap(currency0)));
-        //transfer currency1 to the hook
-        currency0.transfer(address(hook), 1000000000000 ether);
-        currency1.transfer(address(hook), 1000000000000 ether);
-
+        
 
         deployAndApprovePosm(manager);
         address avs = address(0x1);
@@ -84,6 +73,17 @@ contract CounterTest is Test, Fixtures, LiquidityOperations {
         bytes memory constructorArgs = abi.encode(manager, posm); //Add all the necessary constructor arguments from the hook
         deployCodeTo("JITLiquidity.sol:JITLiquidity", constructorArgs, flags);
         hook = JITLiquidity(flags);
+        ////check balance of currency 0 and currency 1
+        console.log("currency0 balance", currency0.balanceOf(address(this)));
+        console.log("currency1 balance", currency1.balanceOf(address(this)));
+        //@notes we need to figure out when currency0 isn't tranferring from test to the hook
+
+        //transfer currency1 to the hook
+        currency0.transfer(address(hook), 1000000000000 ether);
+        currency1.transfer(address(hook), 1000000000000 ether);
+        console.log("currency0 balance after traasdfasdfnsfer", currency0.balanceOf(address(hook)));
+        console.log("address of currency0", address(Currency.unwrap(currency0)));
+        console.log("address hook", address(hook));
 
               // Create the pool
         key = PoolKey(currency0, currency1, 3000, 60, IHooks(address(hook)));
