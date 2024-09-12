@@ -81,6 +81,9 @@ abstract contract LiquidityOperations is CommonBase {
         lpm.modifyLiquidities(calls, _deadline);
     }
 
+    //@note basicallyou have to import this into JIT and encode your call data properly
+    //Stop running away from what you have to do, and just do it.
+
     // Helper functions for getting encoded calldata for .modifyLiquidities() or .modifyLiquiditiesWithoutUnlock()
     function getMintEncoded(PositionConfig memory config, uint256 liquidity, address recipient, bytes memory hookData)
         internal

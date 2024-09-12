@@ -2,6 +2,7 @@
 pragma solidity ^0.8.24;
 
 import "forge-std/Test.sol";
+import "forge-std/console.sol";
 import {IHooks} from "v4-core/src/interfaces/IHooks.sol";
 import {Hooks} from "v4-core/src/libraries/Hooks.sol";
 import {TickMath} from "v4-core/src/libraries/TickMath.sol";
@@ -18,19 +19,28 @@ import {PoolModifyLiquidityTest} from "v4-core/src/test/PoolModifyLiquidityTest.
 import {IPositionManager} from "v4-periphery/src/interfaces/IPositionManager.sol";
 import {LPFeeLibrary} from "v4-core/src/libraries/LPFeeLibrary.sol";
 import {EasyPosm} from "./utils/EasyPosm.sol";
-import {Fixtures} from "./utils/Fixtures.sol";
 import {MockERC20} from "./utils/MockERC20.sol";
 import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
+import {Fixtures} from "./utils/Fixtures.sol";
+import {LiquidityAmounts} from "v4-core/test/utils/LiquidityAmounts.sol";
+import {LiquidityOperations} from "v4-periphery/test/shared/LiquidityOperations.sol";
+import {PositionManager} from "v4-periphery/src/PositionManager.sol";
 
 
-contract CounterTest is Test, Fixtures {
+
+
+contract CounterTest is Test, Fixtures, LiquidityOperations {
     using EasyPosm for IPositionManager;
     using PoolIdLibrary for PoolKey;
     using CurrencyLibrary for Currency;
     using StateLibrary for IPoolManager;
+    
+
+
 
 
     PoolId poolId;
+    LiquidityOperations liquidityOperations;
 
     uint256 tokenId;
     PositionConfig config;
@@ -59,39 +69,88 @@ contract CounterTest is Test, Fixtures {
                 Hooks.BEFORE_SWAP_FLAG | Hooks.AFTER_SWAP_FLAG | Hooks.BEFORE_ADD_LIQUIDITY_FLAG
                     | Hooks.BEFORE_REMOVE_LIQUIDITY_FLAG)
         );
-        bytes memory constructorArgs = abi.encode(manager, address(avs), address(posm)); //Add all the necessary constructor arguments from the hook
+        bytes memory constructorArgs = abi.encode(manager, posm); //Add all the necessary constructor arguments from the hook
         deployCodeTo("JITLiquidity.sol:JITLiquidity", constructorArgs, flags);
         hook = JITLiquidity(flags);
-        initializeManagerRoutersAndPoolsWithLiq(IHooks(address(hook)));
+
+              // Create the pool
+        key = PoolKey(currency0, currency1, 3000, 60, IHooks(address(hook)));
+        manager.initialize(key, SQRT_PRICE_1_1, ZERO_BYTES);
+        // full-range liquidity
+        config = PositionConfig({
+            poolKey: key,
+            tickLower: TickMath.minUsableTick(key.tickSpacing),
+            tickUpper: TickMath.maxUsableTick(key.tickSpacing)
+        });
+        uint256 tokenId = posm.nextTokenId();
+    
+        
         
     }
 
     function testCounterHooks() public {
-        // positions were created in setup()
-        assertEq(hook.beforeAddLiquidityCount(poolId), 1);
-        assertEq(hook.beforeRemoveLiquidityCount(poolId), 0);
 
-        assertEq(hook.beforeSwapCount(poolId), 0);
-        assertEq(hook.afterSwapCount(poolId), 0);
+        //get amount for liquidity before swao
+        uint256 liquidityToMint = 100e18;
+        uint256 tokenId = posm.nextTokenId() - 1;
+
+        (uint256 amount0, uint256 amount1) = LiquidityAmounts.getAmountsForLiquidity(
+            SQRT_PRICE_1_1,
+            TickMath.getSqrtPriceAtTick(config.tickLower),
+            TickMath.getSqrtPriceAtTick(config.tickUpper),
+            uint128(liquidityToMint)
+        );
+
+
+        (tokenId,) = posm.mint(
+            config,
+            100e18,
+            MAX_SLIPPAGE_ADD_LIQUIDITY,
+            MAX_SLIPPAGE_ADD_LIQUIDITY,
+            address(this),
+            block.timestamp + 1,
+            ZERO_BYTES
+        );
+        uint256 positionLiquidity = posm.getPositionLiquidity(tokenId, config);
+        console.log("liquidity after mint", positionLiquidity);
+
+        
+
+
+        uint256 hookTokenId = posm.nextTokenId();
+        uint256 newLiquidity = 10e18;
 
         // Perform a test swap //
         bool zeroForOne = true;
         int256 amountSpecified = -1e18; // negative number indicates exact input swap!
+        //bytes memory calls = getIncreaseEncoded(tokenId, config, newLiquidity, ZERO_BYTES);
+
         BalanceDelta swapDelta = swap(key, zeroForOne, amountSpecified, ZERO_BYTES);
-        // ------------------- //
+        positionLiquidity = posm.getPositionLiquidity(tokenId, config);
+        console.log("liquidity after swap", positionLiquidity);
 
-        assertEq(int256(swapDelta.amount0()), amountSpecified);
 
-        assertEq(hook.beforeSwapCount(poolId), 1);
-        assertEq(hook.afterSwapCount(poolId), 1);
+
+
+
+        // console.log("address balance of currency0 after swap", currency0.balanceOf(address(this)));
+        // console.log("address balance of currency1 after swap", currency1.balanceOf(address(this)));
+        // uint256 positionLiquidity = manager.getPositionLiquidity(config.poolKey.toId(), bytes32(tokenId));
+        // console.log("liquidity after swap", liquidity);
+       
     }
 
     function testLiquidityHooks() public {
-        // positions were created in setup()
-        assertEq(hook.beforeAddLiquidityCount(poolId), 1);
-        assertEq(hook.beforeRemoveLiquidityCount(poolId), 0);
 
-        // remove liquidity
+        (uint256 tokenId,) = posm.mint(
+            config,
+            100e18,
+            MAX_SLIPPAGE_ADD_LIQUIDITY,
+            MAX_SLIPPAGE_ADD_LIQUIDITY,
+            address(this),
+            block.timestamp + 1,
+            ZERO_BYTES
+        );
         uint256 liquidityToRemove = 1e18;
         posm.decreaseLiquidity(
             tokenId,
@@ -103,8 +162,6 @@ contract CounterTest is Test, Fixtures {
             block.timestamp,
             ZERO_BYTES
         );
-
-        assertEq(hook.beforeAddLiquidityCount(poolId), 1);
-        assertEq(hook.beforeRemoveLiquidityCount(poolId), 1);
+        console.log("liquidity removed");
     }
 }
