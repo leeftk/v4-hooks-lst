@@ -38,8 +38,8 @@ library EasyPosm {
 
         // Mint Liquidity
         tokenId = posm.nextTokenId();
-        posm.modifyLiquiditiesWithoutUnlock(
-            abi.encode(abi.encodePacked(uint8(Actions.MINT_POSITION), uint8(Actions.SETTLE_PAIR))), params
+        posm.modifyLiquidities(
+            abi.encode(abi.encodePacked(uint8(Actions.MINT_POSITION), uint8(Actions.SETTLE_PAIR)), params), deadline
         );
 
         delta = toBalanceDelta(

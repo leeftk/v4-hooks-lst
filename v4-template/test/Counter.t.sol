@@ -25,6 +25,7 @@ import {Fixtures} from "./utils/Fixtures.sol";
 import {LiquidityAmounts} from "v4-core/test/utils/LiquidityAmounts.sol";
 import {LiquidityOperations} from "v4-periphery/test/shared/LiquidityOperations.sol";
 import {PositionManager} from "v4-periphery/src/PositionManager.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 
 
@@ -58,7 +59,18 @@ contract CounterTest is Test, Fixtures, LiquidityOperations {
         // creates the pool manager, utility routers, and test tokens
         deployFreshManagerAndRouters();
         deployMintAndApprove2Currencies();
-   
+        ////check balance of currency 0 and currency 1
+        console.log("currency0 balance", currency0.balanceOf(address(this)));
+        console.log("currency1 balance", currency1.balanceOf(address(this)));
+        //transfer currency0 to the hook
+        IERC20(Currency.unwrap(currency0)).transfer(address(hook), 1000000000000 ether);
+        IERC20(Currency.unwrap(currency1)).transfer(address(hook), 1000000000000 ether);
+        console.log("currency0 balance after traasdfasdfnsfer", currency1.balanceOf(address(hook)));
+        console.log("address of currency0", address(Currency.unwrap(currency0)));
+        //transfer currency1 to the hook
+        currency0.transfer(address(hook), 1000000000000 ether);
+        currency1.transfer(address(hook), 1000000000000 ether);
+
 
         deployAndApprovePosm(manager);
         address avs = address(0x1);
@@ -83,6 +95,9 @@ contract CounterTest is Test, Fixtures, LiquidityOperations {
             tickUpper: TickMath.maxUsableTick(key.tickSpacing)
         });
         uint256 tokenId = posm.nextTokenId();
+
+        //deal ether to the hook
+        deal(address(hook), 1000000 ether);
     
         
         
@@ -125,9 +140,9 @@ contract CounterTest is Test, Fixtures, LiquidityOperations {
         int256 amountSpecified = -1e18; // negative number indicates exact input swap!
         //bytes memory calls = getIncreaseEncoded(tokenId, config, newLiquidity, ZERO_BYTES);
 
-        BalanceDelta swapDelta = swap(key, zeroForOne, amountSpecified, ZERO_BYTES);
+        BalanceDelta delta = swap(key, zeroForOne, amountSpecified, ZERO_BYTES);
         positionLiquidity = posm.getPositionLiquidity(tokenId, config);
-        console.log("liquidity after swap", positionLiquidity);
+     
 
 
 
@@ -164,4 +179,31 @@ contract CounterTest is Test, Fixtures, LiquidityOperations {
         );
         console.log("liquidity removed");
     }
+      function _settle(Currency currency, uint128 amount) internal {
+    // Transfer tokens to PM and let it know
+    console.log("amount hehe", amount);
+    manager.sync(currency);
+    currency.transfer(address(manager), amount);
+    manager.settle();
+}
+
+function _take(Currency currency, uint128 amount) internal returns(uint256) {
+    // Record balance before taking tokens
+    uint256 balanceBefore = IERC20(Currency.unwrap(currency)).balanceOf(address(this));
+    console.log("amoudddddddddddddnt bought", amount);
+    
+    // Take tokens out of PM to our hook contract
+    manager.take(currency, address(this), amount);
+    
+    // Record balance after taking tokens
+    uint256 balanceAfter = IERC20(Currency.unwrap(currency)).balanceOf(address(this));
+    
+    // Calculate the actual amount bought
+    uint256 amountBought = balanceAfter - balanceBefore;
+    console.log("amoudddddddddddddnt bought", amountBought);
+
+    return amountBought;
+    
+    
+}
 }
