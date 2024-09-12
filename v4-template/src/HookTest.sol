@@ -28,7 +28,9 @@ contract JITLiquidity is BaseHook {
     event LiquidityAdded(PoolId indexed poolId, uint256 tokenId, uint256 amount);
     event LiquidityRemoved(PoolId indexed poolId, uint256 tokenId, uint256 amount);
 
-    constructor(IPoolManager _poolManager, address _avsAddress, IPositionManager _positionManager) BaseHook(_poolManager) {
+    constructor(IPoolManager _poolManager, address _avsAddress, IPositionManager _positionManager)
+        BaseHook(_poolManager)
+    {
         avsAddress = _avsAddress;
         positionManager = _positionManager;
     }
@@ -52,19 +54,11 @@ contract JITLiquidity is BaseHook {
         });
     }
 
-    function beforeAddLiquidity(address, PoolKey calldata key, bytes calldata)
-        external
-
-        returns (bytes4)
-    {
+    function beforeAddLiquidity(address, PoolKey calldata key, bytes calldata) external returns (bytes4) {
         return BaseHook.beforeAddLiquidity.selector;
     }
 
-    function beforeRemoveLiquidity(address, PoolKey calldata key, bytes calldata)
-        external
-    
-        returns (bytes4)
-    {
+    function beforeRemoveLiquidity(address, PoolKey calldata key, bytes calldata) external returns (bytes4) {
         beforeRemoveLiquidityCount[key.toId()]++;
         return BaseHook.beforeRemoveLiquidity.selector;
     }
@@ -96,7 +90,7 @@ contract JITLiquidity is BaseHook {
         uint256 maxSlippage1
     ) external {
         //require(msg.sender == avsAddress, "Only AVS can add liquidity");
-        
+
         // positionManager.increaseLiquidity(
         //     tokenId,
         //     config,
@@ -120,7 +114,7 @@ contract JITLiquidity is BaseHook {
         uint256 maxSlippage1
     ) external {
         //require(msg.sender == avsAddress, "Only AVS can remove liquidity");
-        
+
         positionManager.decreaseLiquidity(
             tokenId,
             config,

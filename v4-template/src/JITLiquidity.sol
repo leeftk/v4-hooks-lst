@@ -18,24 +18,16 @@ import {IERC20} from "forge-std/interfaces/IERC20.sol";
 import "forge-std/console.sol";
 import {LiquidityOperations} from "v4-periphery/test/shared/LiquidityOperations.sol";
 
-
-
-
-
-
-
 contract JITLiquidity is BaseHook, LiquidityOperations {
-   
-   using PoolIdLibrary for PoolKey;
-   using EasyPosm for IPositionManager;
-   IPositionManager public posm;
-   IPoolManager public manager;
-   PositionConfig config;
-   IAllowanceTransfer public permit2;
+    using PoolIdLibrary for PoolKey;
+    using EasyPosm for IPositionManager;
 
-   uint160 public constant SQRT_PRICE_1_1 = 79228162514264337593543950336;
+    IPositionManager public posm;
+    IPoolManager public manager;
+    PositionConfig config;
+    IAllowanceTransfer public permit2;
 
-   
+    uint160 public constant SQRT_PRICE_1_1 = 79228162514264337593543950336;
 
     /// @dev Min tick for full range with tick spacing of 60
     int24 internal constant MIN_TICK = -887220;
@@ -45,9 +37,6 @@ contract JITLiquidity is BaseHook, LiquidityOperations {
     int256 internal constant MAX_INT = type(int256).max;
     uint16 internal constant MINIMUM_LIQUIDITY = 1000;
     bytes constant ZERO_BYTES = new bytes(0);
-  
-
-  
 
     mapping(PoolId => uint256 count) public beforeSwapCount;
     mapping(PoolId => uint256 count) public afterSwapCount;
@@ -58,8 +47,6 @@ contract JITLiquidity is BaseHook, LiquidityOperations {
     constructor(IPoolManager _poolManager, IPositionManager _posm) BaseHook(_poolManager) {
         posm = _posm;
         manager = _poolManager;
-       
-    
     }
 
     function getHookPermissions() public pure override returns (Hooks.Permissions memory) {
@@ -94,44 +81,37 @@ contract JITLiquidity is BaseHook, LiquidityOperations {
         uint256 slippage = 100e18;
         uint256 deadline = block.timestamp + 1;
 
+        //       config = PositionConfig({
+        //         poolKey: key,
+        //         tickLower: TickMath.minUsableTick(key.tickSpacing),
+        //         tickUpper: TickMath.maxUsableTick(key.tickSpacing)
+        //     });
 
+        //uint256 tokenId = posm.nextTokenId();
 
-        
+        // (uint256 tokenId, BalanceDelta delta) = posm.mint(
+        //         config,
+        //         100000000e18,
+        //         type(uint256).max,
+        //         type(uint256).max,
+        //         address(this),
+        // //         block.timestamp + 1,
+        // //         ''
+        // //     );
 
+        //     uint256 positionLiquidity = posm.getPositionLiquidity(tokenId, config);
 
-    //       config = PositionConfig({
-    //         poolKey: key,
-    //         tickLower: TickMath.minUsableTick(key.tickSpacing),
-    //         tickUpper: TickMath.maxUsableTick(key.tickSpacing)
-    //     });
-   
-
-    //uint256 tokenId = posm.nextTokenId();
-    
-    // (uint256 tokenId, BalanceDelta delta) = posm.mint(
-    //         config,
-    //         100000000e18,
-    //         type(uint256).max,
-    //         type(uint256).max,
-    //         address(this),
-    // //         block.timestamp + 1,
-    // //         ''
-    // //     );
-        
-    //     uint256 positionLiquidity = posm.getPositionLiquidity(tokenId, config);
-
-        
-    //manager.initialize(key, SQRT_PRICE_1_1, ZERO_BYTES);
-    int liquidityDelta = 10 ether;
-    int24 tickSpacing = 60;
-    (BalanceDelta delta, ) = manager.modifyLiquidity(
-                  key,
+        //manager.initialize(key, SQRT_PRICE_1_1, ZERO_BYTES);
+        int256 liquidityDelta = 10 ether;
+        int24 tickSpacing = 60;
+        (BalanceDelta delta,) = manager.modifyLiquidity(
+            key,
             IPoolManager.ModifyLiquidityParams(
                 TickMath.minUsableTick(tickSpacing), TickMath.maxUsableTick(tickSpacing), liquidityDelta, 0
             ),
             ZERO_BYTES
-        ); 
-        console.log("address currecny0",address(Currency.unwrap(key.currency0)));
+        );
+        console.log("address currecny0", address(Currency.unwrap(key.currency0)));
         console.log("BALABABABBA", IERC20(Currency.unwrap(key.currency0)).balanceOf(address(this)));
         console.log("delta.amount0()", uint128(delta.amount0()));
         console.log("address this", address(this));
@@ -159,26 +139,6 @@ contract JITLiquidity is BaseHook, LiquidityOperations {
 
         console.log("address of currency0", address(Currency.unwrap(key.currency0)));
         console.log("BALABABABBA", IERC20(Currency.unwrap(key.currency0)).balanceOf(address(this)));
-
-    
-
-
-
-
-
-
-        
-        
-
-
-
-
-
-        
-        
-
-
-
 
         return (BaseHook.beforeSwap.selector, BeforeSwapDeltaLibrary.ZERO_DELTA, 0);
     }
@@ -213,7 +173,6 @@ contract JITLiquidity is BaseHook, LiquidityOperations {
         return BaseHook.beforeRemoveLiquidity.selector;
     }
 
-
     function approvePosmCurrency(Currency currency) internal {
         // Because POSM uses permit2, we must execute 2 permits/approvals.
         // 1. First, the caller must approve permit2 on the token.
@@ -222,31 +181,29 @@ contract JITLiquidity is BaseHook, LiquidityOperations {
         permit2.approve(Currency.unwrap(currency), address(posm), type(uint160).max, type(uint48).max);
     }
 
-function _settle(Currency currency, uint128 amount) internal {
-    // Transfer tokens to PM and let it know
-    console.log("amount hehe", amount);
-    manager.sync(currency);
-    console.log("address of currency!!!!!!", address(Currency.unwrap(currency)));
-    console.log("balance of currency before transfer", IERC20(Currency.unwrap(currency)).balanceOf(address(this)));
-    currency.transfer(address(manager), amount);
-    manager.settle();
-}
+    function _settle(Currency currency, uint128 amount) internal {
+        // Transfer tokens to PM and let it know
+        console.log("amount hehe", amount);
+        manager.sync(currency);
+        console.log("address of currency!!!!!!", address(Currency.unwrap(currency)));
+        console.log("balance of currency before transfer", IERC20(Currency.unwrap(currency)).balanceOf(address(this)));
+        currency.transfer(address(manager), amount);
+        manager.settle();
+    }
 
-function _take(Currency currency, uint128 amount) internal returns(uint256) {
-    // Record balance before taking tokens
-    uint256 balanceBefore = IERC20(Currency.unwrap(currency)).balanceOf(address(this));
-    
-    // Take tokens out of PM to our hook contract
-    manager.take(currency, address(this), amount);
-    
-    // Record balance after taking tokens
-    uint256 balanceAfter = IERC20(Currency.unwrap(currency)).balanceOf(address(this));
-    
-    // Calculate the actual amount bought
-    uint256 amountBought = balanceAfter - balanceBefore;
+    function _take(Currency currency, uint128 amount) internal returns (uint256) {
+        // Record balance before taking tokens
+        uint256 balanceBefore = IERC20(Currency.unwrap(currency)).balanceOf(address(this));
 
-    return amountBought;
-    
-    
-}
+        // Take tokens out of PM to our hook contract
+        manager.take(currency, address(this), amount);
+
+        // Record balance after taking tokens
+        uint256 balanceAfter = IERC20(Currency.unwrap(currency)).balanceOf(address(this));
+
+        // Calculate the actual amount bought
+        uint256 amountBought = balanceAfter - balanceBefore;
+
+        return amountBought;
+    }
 }

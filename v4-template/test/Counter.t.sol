@@ -27,18 +27,11 @@ import {LiquidityOperations} from "v4-periphery/test/shared/LiquidityOperations.
 import {PositionManager} from "v4-periphery/src/PositionManager.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-
-
-
 contract CounterTest is Test, Fixtures, LiquidityOperations {
     using EasyPosm for IPositionManager;
     using PoolIdLibrary for PoolKey;
     using CurrencyLibrary for Currency;
     using StateLibrary for IPoolManager;
-    
-
-
-
 
     PoolId poolId;
     LiquidityOperations liquidityOperations;
@@ -54,21 +47,20 @@ contract CounterTest is Test, Fixtures, LiquidityOperations {
     MockERC20 token0;
     MockERC20 token1;
 
-
     function setUp() public {
         // creates the pool manager, utility routers, and test tokens
         deployFreshManagerAndRouters();
         deployMintAndApprove2Currencies();
-        
 
         deployAndApprovePosm(manager);
         address avs = address(0x1);
-        
+
         // Deploy the hook to an address with the correct flags
         address flags = address(
             uint160(
                 Hooks.BEFORE_SWAP_FLAG | Hooks.AFTER_SWAP_FLAG | Hooks.BEFORE_ADD_LIQUIDITY_FLAG
-                    | Hooks.BEFORE_REMOVE_LIQUIDITY_FLAG)
+                    | Hooks.BEFORE_REMOVE_LIQUIDITY_FLAG
+            )
         );
         bytes memory constructorArgs = abi.encode(manager, posm); //Add all the necessary constructor arguments from the hook
         deployCodeTo("JITLiquidity.sol:JITLiquidity", constructorArgs, flags);
@@ -85,7 +77,7 @@ contract CounterTest is Test, Fixtures, LiquidityOperations {
         console.log("address of currency0", address(Currency.unwrap(currency0)));
         console.log("address hook", address(hook));
 
-              // Create the pool
+        // Create the pool
         key = PoolKey(currency0, currency1, 3000, 60, IHooks(address(hook)));
         manager.initialize(key, SQRT_PRICE_1_1, ZERO_BYTES);
         // full-range liquidity
@@ -98,13 +90,9 @@ contract CounterTest is Test, Fixtures, LiquidityOperations {
 
         //deal ether to the hook
         deal(address(hook), 1000000 ether);
-    
-        
-        
     }
 
     function testCounterHooks() public {
-
         //get amount for liquidity before swao
         uint256 liquidityToMint = 100e18;
         uint256 tokenId = posm.nextTokenId() - 1;
@@ -115,7 +103,6 @@ contract CounterTest is Test, Fixtures, LiquidityOperations {
             TickMath.getSqrtPriceAtTick(config.tickUpper),
             uint128(liquidityToMint)
         );
-
 
         (tokenId,) = posm.mint(
             config,
@@ -129,9 +116,6 @@ contract CounterTest is Test, Fixtures, LiquidityOperations {
         uint256 positionLiquidity = posm.getPositionLiquidity(tokenId, config);
         console.log("liquidity after mint", positionLiquidity);
 
-        
-
-
         uint256 hookTokenId = posm.nextTokenId();
         uint256 newLiquidity = 10e18;
 
@@ -142,21 +126,14 @@ contract CounterTest is Test, Fixtures, LiquidityOperations {
 
         BalanceDelta delta = swap(key, zeroForOne, amountSpecified, ZERO_BYTES);
         positionLiquidity = posm.getPositionLiquidity(tokenId, config);
-     
-
-
-
-
 
         // console.log("address balance of currency0 after swap", currency0.balanceOf(address(this)));
         // console.log("address balance of currency1 after swap", currency1.balanceOf(address(this)));
         // uint256 positionLiquidity = manager.getPositionLiquidity(config.poolKey.toId(), bytes32(tokenId));
         // console.log("liquidity after swap", liquidity);
-       
     }
 
     function testLiquidityHooks() public {
-
         (uint256 tokenId,) = posm.mint(
             config,
             100e18,
@@ -179,31 +156,30 @@ contract CounterTest is Test, Fixtures, LiquidityOperations {
         );
         console.log("liquidity removed");
     }
-      function _settle(Currency currency, uint128 amount) internal {
-    // Transfer tokens to PM and let it know
-    console.log("amount hehe", amount);
-    manager.sync(currency);
-    currency.transfer(address(manager), amount);
-    manager.settle();
-}
 
-function _take(Currency currency, uint128 amount) internal returns(uint256) {
-    // Record balance before taking tokens
-    uint256 balanceBefore = IERC20(Currency.unwrap(currency)).balanceOf(address(this));
-    console.log("amoudddddddddddddnt bought", amount);
-    
-    // Take tokens out of PM to our hook contract
-    manager.take(currency, address(this), amount);
-    
-    // Record balance after taking tokens
-    uint256 balanceAfter = IERC20(Currency.unwrap(currency)).balanceOf(address(this));
-    
-    // Calculate the actual amount bought
-    uint256 amountBought = balanceAfter - balanceBefore;
-    console.log("amoudddddddddddddnt bought", amountBought);
+    function _settle(Currency currency, uint128 amount) internal {
+        // Transfer tokens to PM and let it know
+        console.log("amount hehe", amount);
+        manager.sync(currency);
+        currency.transfer(address(manager), amount);
+        manager.settle();
+    }
 
-    return amountBought;
-    
-    
-}
+    function _take(Currency currency, uint128 amount) internal returns (uint256) {
+        // Record balance before taking tokens
+        uint256 balanceBefore = IERC20(Currency.unwrap(currency)).balanceOf(address(this));
+        console.log("amoudddddddddddddnt bought", amount);
+
+        // Take tokens out of PM to our hook contract
+        manager.take(currency, address(this), amount);
+
+        // Record balance after taking tokens
+        uint256 balanceAfter = IERC20(Currency.unwrap(currency)).balanceOf(address(this));
+
+        // Calculate the actual amount bought
+        uint256 amountBought = balanceAfter - balanceBefore;
+        console.log("amoudddddddddddddnt bought", amountBought);
+
+        return amountBought;
+    }
 }
