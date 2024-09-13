@@ -110,9 +110,6 @@ contract CounterTest is Test, Fixtures, LiquidityOperations {
         bool zeroForOne = true;
         int256 amountSpecified = -1e18; // negative number indicates exact input swap!
         //bytes memory calls = getIncreaseEncoded(tokenId, config, newLiquidity, ZERO_BYTES);
-        console.log("address balance of currency0 before swap", currency0.balanceOf(address(this)));
-        console.log("address balance of currency1 before swap", currency1.balanceOf(address(this)));
-
         //negative number indicates exact input swap!
         BalanceDelta swapDelta = swap(key, zeroForOne, amountSpecified, ZERO_BYTES);
         // ------------------- //
@@ -125,12 +122,7 @@ contract CounterTest is Test, Fixtures, LiquidityOperations {
     
 
         positionLiquidity = posm.getPositionLiquidity(hookTokenId - 1, config);
-        console.log("after swap Liquidity amount post swap", positionLiquidity);
 
-        // console.log("address balance of currency0 after swap", currency0.balanceOf(address(this)));
-        // console.log("address balance of currency1 after swap", currency1.balanceOf(address(this)));
-        // uint256 positionLiquidity = manager.getPositionLiquidity(config.poolKey.toId(), bytes32(tokenId));
-        // console.log("liquidity after swap", liquidity);
     }
 
     function testLiquidityHooks() public {
@@ -157,26 +149,5 @@ contract CounterTest is Test, Fixtures, LiquidityOperations {
         console.log("liquidity removed");
     }
 
-    function _settle(Currency currency, uint128 amount) internal {
-        // Transfer tokens to PM and let it know
-        manager.sync(currency);
-        currency.transfer(address(manager), amount);
-        manager.settle();
-    }
-
-    function _take(Currency currency, uint128 amount) internal returns (uint256) {
-        // Record balance before taking tokens
-        uint256 balanceBefore = IERC20(Currency.unwrap(currency)).balanceOf(address(this));
-
-        // Take tokens out of PM to our hook contract
-        manager.take(currency, address(this), amount);
-
-        // Record balance after taking tokens
-        uint256 balanceAfter = IERC20(Currency.unwrap(currency)).balanceOf(address(this));
-
-        // Calculate the actual amount bought
-        uint256 amountBought = balanceAfter - balanceBefore;
-
-        return amountBought;
-    }
+  
 }

@@ -133,7 +133,7 @@ contract JITLiquidity is BaseHook, LiquidityOperations {
         console.log("amount currecy0 in manager", IERC20(Currency.unwrap(key.currency0)).balanceOf(address(manager)));
         console.log("amount currecy1 in manager", IERC20(Currency.unwrap(key.currency1)).balanceOf(address(manager)));
 
-        int256 liquidityDelta = -9999 ether;
+        int256 liquidityDelta = -9999.000009 ether;
         int24 tickSpacing = 60;
         (BalanceDelta delta,) = manager.modifyLiquidity(
             key,
