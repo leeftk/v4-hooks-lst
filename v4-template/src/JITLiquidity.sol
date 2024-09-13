@@ -17,11 +17,11 @@ import {IAllowanceTransfer} from "permit2/src/interfaces/IAllowanceTransfer.sol"
 import {IERC20} from "forge-std/interfaces/IERC20.sol";
 import "forge-std/console.sol";
 import {LiquidityOperations} from "v4-periphery/test/shared/LiquidityOperations.sol";
+import {LPFeeLibrary} from "v4-periphery/lib/v4-core/src/libraries/LPFeeLibrary.sol";
 
 contract JITLiquidity is BaseHook, LiquidityOperations {
     using PoolIdLibrary for PoolKey;
     using EasyPosm for IPositionManager;
-
     IPositionManager public posm;
     IPoolManager public manager;
     PositionConfig config;
@@ -77,33 +77,15 @@ contract JITLiquidity is BaseHook, LiquidityOperations {
         override
         returns (bytes4, BeforeSwapDelta, uint24)
     {
+        console.log("amount in manager before swap", IERC20(Currency.unwrap(key.currency0)).balanceOf(address(manager)));
+        console.log("amount in manager before swap", IERC20(Currency.unwrap(key.currency1)).balanceOf(address(manager)));
         uint256 liquidity = 100e18;
         uint256 slippage = 100e18;
         uint256 deadline = block.timestamp + 1;
-
-        //       config = PositionConfig({
-        //         poolKey: key,
-        //         tickLower: TickMath.minUsableTick(key.tickSpacing),
-        //         tickUpper: TickMath.maxUsableTick(key.tickSpacing)
-        //     });
-
-        //uint256 tokenId = posm.nextTokenId();
-
-        // (uint256 tokenId, BalanceDelta delta) = posm.mint(
-        //         config,
-        //         100000000e18,
-        //         type(uint256).max,
-        //         type(uint256).max,
-        //         address(this),
-        // //         block.timestamp + 1,
-        // //         ''
-        // //     );
-
-        //     uint256 positionLiquidity = posm.getPositionLiquidity(tokenId, config);
-
-        //manager.initialize(key, SQRT_PRICE_1_1, ZERO_BYTES);
-        int256 liquidityDelta = 10 ether;
+        int256 liquidityDelta = 10000 ether;
         int24 tickSpacing = 60;
+        //@note inistliaze pool with fee
+        //manager.initialize(key, SQRT_PRICE_1_1, ZERO_BYTES);
         (BalanceDelta delta,) = manager.modifyLiquidity(
             key,
             IPoolManager.ModifyLiquidityParams(
@@ -111,10 +93,8 @@ contract JITLiquidity is BaseHook, LiquidityOperations {
             ),
             ZERO_BYTES
         );
-        console.log("address currecny0", address(Currency.unwrap(key.currency0)));
-        console.log("BALABABABBA", IERC20(Currency.unwrap(key.currency0)).balanceOf(address(this)));
-        console.log("delta.amount0()", uint128(delta.amount0()));
-        console.log("address this", address(this));
+        
+
         // Handle delta.amount0()
         if (delta.amount0() < 0) {
             // Negative Value => Money leaving contract's wallet
@@ -137,8 +117,7 @@ contract JITLiquidity is BaseHook, LiquidityOperations {
             _take(key.currency1, uint128(delta.amount1()));
         }
 
-        console.log("address of currency0", address(Currency.unwrap(key.currency0)));
-        console.log("BALABABABBA", IERC20(Currency.unwrap(key.currency0)).balanceOf(address(this)));
+      
 
         return (BaseHook.beforeSwap.selector, BeforeSwapDeltaLibrary.ZERO_DELTA, 0);
     }
@@ -148,10 +127,47 @@ contract JITLiquidity is BaseHook, LiquidityOperations {
         override
         returns (bytes4, int128)
     {
-        afterSwapCount[key.toId()]++;
-        ///remove liquidity in here
+        uint256 liquidity = 100e18;
+        uint256 slippage = 100e18;
+        uint256 deadline = block.timestamp + 1;
+        console.log("amount currecy0 in manager", IERC20(Currency.unwrap(key.currency0)).balanceOf(address(manager)));
+        console.log("amount currecy1 in manager", IERC20(Currency.unwrap(key.currency1)).balanceOf(address(manager)));
+
+        int256 liquidityDelta = -9999 ether;
+        int24 tickSpacing = 60;
+        (BalanceDelta delta,) = manager.modifyLiquidity(
+            key,
+            IPoolManager.ModifyLiquidityParams(
+                TickMath.minUsableTick(tickSpacing), TickMath.maxUsableTick(tickSpacing), liquidityDelta, 0
+            ),
+            ZERO_BYTES
+        );
+
+       
+        // Handle delta.amount0()
+        if (delta.amount0() < 0) {
+            // Negative Value => Money leaving contract's wallet
+            // Settle with PoolManager
+            _settle(key.currency0, uint128(-delta.amount0()));
+        } else if (delta.amount0() > 0) {
+            // Positive Value => Money coming into contract's wallet
+            // Take from PoolManager
+            _take(key.currency0, uint128(delta.amount0()));
+        }
+
+        // Handle delta.amount1()
+        if (delta.amount1() < 0) {
+            // Negative Value => Money leaving contract's wallet
+            // Settle with PoolManager
+            _settle(key.currency1, uint128(-delta.amount1()));
+        } else if (delta.amount1() > 0) {
+            // Positive Value => Money coming into contract's wallet
+            // Take from PoolManager
+            _take(key.currency1, uint128(delta.amount1()));
+        }
         return (BaseHook.afterSwap.selector, 0);
     }
+
 
     function beforeAddLiquidity(
         address,
@@ -183,10 +199,8 @@ contract JITLiquidity is BaseHook, LiquidityOperations {
 
     function _settle(Currency currency, uint128 amount) internal {
         // Transfer tokens to PM and let it know
-        console.log("amount hehe", amount);
         manager.sync(currency);
-        console.log("address of currency!!!!!!", address(Currency.unwrap(currency)));
-        console.log("balance of currency before transfer", IERC20(Currency.unwrap(currency)).balanceOf(address(this)));
+   
         currency.transfer(address(manager), amount);
         manager.settle();
     }
