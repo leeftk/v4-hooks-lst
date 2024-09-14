@@ -38,6 +38,15 @@ contract JITLiquidity is BaseHook, LiquidityOperations {
     uint16 internal constant MINIMUM_LIQUIDITY = 1000;
     bytes constant ZERO_BYTES = new bytes(0);
 
+    //Adding variables to implement liquidity provision for dynamic tick range
+    uint256 public constant BASE_LIQUIDITY = 1 ether;
+    uint256 public constant MAX_LIQUIDITY = 1000 ether;
+    uint256 public constant MIN_LIQUIDITY = 0.1 ether;
+
+    int24 public tickRange = 10; // Number of ticks around current price to provide liquidity
+    uint256 public minProfitThreshold = 0.0001 ether; // Minimum profit to consider providing liquidity
+
+
     mapping(PoolId => uint256 count) public beforeSwapCount;
     mapping(PoolId => uint256 count) public afterSwapCount;
 
