@@ -14,6 +14,7 @@ import {TickMath} from "v4-core/src/libraries/TickMath.sol";
 import {Currency, CurrencyLibrary} from "v4-core/src/types/Currency.sol";
 import {IERC20} from "forge-std/interfaces/IERC20.sol";
 import {EasyPosm} from "./EasyPosm.sol";
+import {IPool} from "v4-core/src/interfaces/IPool.sol";
 
 contract JITLiquidityDynamic is ImmutableState {
     using PoolIdLibrary for PoolKey;
@@ -53,6 +54,7 @@ contract JITLiquidityDynamic is ImmutableState {
 
     constructor(IPoolManager _poolManager, IPositionManager _positionManager) ImmutableState(_poolManager) {
         positionManager = _positionManager;
+        poolManager = _poolManager;
     }
 
     function getHookPermissions() public pure returns (Hooks.Permissions memory) {
